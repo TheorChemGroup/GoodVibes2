@@ -31,10 +31,10 @@ J. Velmiskina, TheorChemGroup/GoodVibes2, 2025, accessed 20 March 2025. https://
 ```python
 python -m goodvibes [-q] [--qs grimme/truhlar] [--qh] [-f cutoff_freq] [--fs S_cutoff_freq] [--fh H_cutoff_freq]
 [--check] [-t temperature] [-c concentration] [--ti 't_initial, t_final, step'] [--ee] [--bav "global" or "conf"]
-[--symmbyhand]
+[--symmbyhand] [--random 'cutoff_value,spread_range,number_of_steps'] [--norot]
 [--cosmo cosmo_filename] [--cosmoint cosmo_filename,initial_temp,final_temp] [-v frequency_scale_factor]
 [--vmm mm_freq_scale_factor][--ssymm] [--spc link/filename] [--boltz] [--dup][--pes pes_yaml] [--nogconf]
-[--graph graph_yaml] [--cpu] [--imag] [--invertifreq] [--freespace solvent_name] [--output output_name]
+[--graph graph_yaml] [--cpu] [--imag] [--invertifreq invert_cutoff or "auto"] [--freespace solvent_name] [--output output_name]
 [--media solvent_name] [--xyz] [--csv] [--custom_ext file_extension] <output_file(s)>
 ```
 *	The `-h` option gives help by listing all available options, default values and units, and proper usage.
