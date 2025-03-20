@@ -651,10 +651,16 @@ def main():
                         help="Cut-off frequency for enthalpy (wavenumbers) (default = 100)")
     parser.add_argument("-t", dest="temperature", default=298.15, type=float, metavar="TEMP",
                         help="Temperature (K) (default 298.15)")
+    parser.add_argument("--norot", dest="norot", default=False, action="store_true",
+                        help="Turning off rotational contributions to free energy")
     parser.add_argument("-c", dest="conc", default=False, type=float, metavar="CONC",
                         help="Concentration (mol/l) (default 1 atm)")
     parser.add_argument("--ti", dest="temperature_interval", default=False, metavar="TI",
                         help="Initial temp, final temp, step size (K)")
+    parser.add_argument("--symmbyhand", dest="symmbyhand", action="store_true", default=False, 
+                        help="Indicates symmetry by hand (default False)")  
+    parser.add_argument("--random", dest="random_value", default=False, metavar="RAND",
+                        help="Frequency border, frequency range, number of files (default False)")
     parser.add_argument("-v", dest="freq_scale_factor", default=False, type=float, metavar="SCALE_FACTOR",
                         help="Frequency scaling factor. If not set, try to find a suitable value in database. "
                              "If not found, use 1.0")
@@ -986,7 +992,12 @@ def main():
     # Solvent correction message
     if options.media:
         log.write("\n   Applying standard concentration correction (based on density at 20C) to solvent media.")
-
+    # Symmetry adding message
+    if options.symmbyhand:
+        log.write("\n   Adding symmetry by user for each molecule using file name")
+    if options.norot:
+        log.write("\n Turning off rotational contributions to free energy")
+        
     # Check for special options
     inverted_freqs, inverted_files = [], []
     if options.ssymm:
@@ -1037,7 +1048,7 @@ def main():
                 density = solvents[options.media.lower()][1]
                 conc = (density * 1000) / mweight
                 media_conc = conc
-        bbe = calc_bbe(file, options.QS, options.QH, options.S_freq_cutoff, options.H_freq_cutoff, options.temperature,
+        bbe = calc_bbe(file, options.QS, options.QH, options.S_freq_cutoff, options.H_freq_cutoff, options.temperature, 0, 0, 0, 0, options.symmbyhand, options.norot,
                        conc, options.freq_scale_factor, options.freespace, options.spc, options.invert,
                        d3_energy, cosmo=cosmo_option, ssymm=ssymm_option, mm_freq_scale_factor=vmm_option, 
                        inertia=options.inertia, g4=options.g4, glowfreq=options.glowfreq)
@@ -1072,28 +1083,30 @@ def main():
     if options.imag_freq is True: stars += '*' * 9
     if options.boltz is True: stars += '*' * 7
     if options.ssymm is True: stars += '*' * 13
-
+    if options.symmbyhand is not False: stars += '*' * 13
+    if options.random_value is not False: stars += '*' * 14
+    
     # Standard mode: tabulate thermochemistry ouput from file(s) at a single temperature and concentration
-    if options.temperature_interval is False:
+    if options.temperature_interval is False and options.random_value is False:
         if options.spc is False:
             log.write("\n\n   ")
             if options.QH:
                 log.write('{:<39} {:>13} {:>10} {:>13} {:>13} {:>10} {:>10} {:>13} '
-                          '{:>13}'.format("Structure", "E", "ZPE", "H", "qh-H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"),
+                          '{:>16}'.format("Structure", "E", "ZPE", "H", "qh-H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"),
                           thermodata=True)
             else:
-                log.write('{:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E", "ZPE", "H",
+                log.write('{:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>16}'.format("Structure", "E", "ZPE", "H",
                                                                                            "T.S", "T.qh-S", "G(T)",
                                                                                            "qh-G(T)"), thermodata=True)
         else:
             log.write("\n\n   ")
             if options.QH:
                 log.write('{:<39} {:>13} {:>13} {:>10} {:>13} {:>13} {:>10} {:>10} {:>13} '
-                          '{:>13}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "qh-H_SPC", "T.S", "T.qh-S",
+                          '{:>16}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "qh-H_SPC", "T.S", "T.qh-S",
                                           "G(T)_SPC", "qh-G(T)_SPC"), thermodata=True)
             else:
                 log.write('{:<39} {:>13} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} '
-                          '{:>13}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "T.S", "T.qh-S", "G(T)_SPC",
+                          '{:>16}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "T.S", "T.qh-S", "G(T)_SPC",
                                           "qh-G(T)_SPC"), thermodata=True)
         if options.cosmo is not False:
             log.write('{:>13} {:>16}'.format("COSMO-RS", "COSMO-qh-G(T)"), thermodata=True)
@@ -1101,7 +1114,7 @@ def main():
             log.write('{:>7}'.format("Boltz"), thermodata=True)
         if options.imag_freq is True:
             log.write('{:>9}'.format("im freq"), thermodata=True)
-        if options.ssymm:
+        if options.ssymm or options.symmbyhand:
             log.write('{:>13}'.format("Point Group"), thermodata=True)
         log.write("\n" + stars + "")
 
@@ -1182,13 +1195,13 @@ def main():
                         if all(getattr(bbe, attrib) for attrib in
                                ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
                             if options.QH:
-                                log.write(' {:10.6f} {:13.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(
+                                log.write(' {:10.6f} {:13.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(
                                     bbe.zpe, bbe.enthalpy, bbe.qh_enthalpy, (options.temperature * bbe.entropy),
                                     (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy,
                                     bbe.qh_gibbs_free_energy), thermodata=True)
                             else:
                                 log.write(' {:10.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} '
-                                          '{:13.6f}'.format(bbe.zpe, bbe.enthalpy,
+                                          '{:16.6f}'.format(bbe.zpe, bbe.enthalpy,
                                                             (options.temperature * bbe.entropy),
                                                             (options.temperature * bbe.qh_entropy),
                                                             bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy),
@@ -1206,7 +1219,7 @@ def main():
                 if options.imag_freq is True and hasattr(bbe, "im_frequency_wn"):
                     for freq in bbe.im_frequency_wn:
                         log.write('{:9.2f}'.format(freq), thermodata=True)
-                if options.ssymm:
+                if options.ssymm or options.symmbyhand:
                     if hasattr(bbe, "qh_gibbs_free_energy"):
                         log.write('{:>13}'.format(bbe.point_group))
                     else:
@@ -1232,6 +1245,122 @@ def main():
     if options.check:
         check_files(log, files, thermo_data, options, stars, l_o_t, s_m, orientation, grid)
 
+    # Random analysis for low frequencies
+    elif options.random_value:
+        log.write("\n\n   Variable-Frequency analysis of the enthalpy and entropy")
+        if options.cosmo_int is False:
+            # If no random times was defined, divide the region into 10
+            random_value = [val for val in options.random_value.split(',')]
+            if len(random_value) != 3: 
+                log.write("Key --random contains much or few quantity of numbers")
+            value_up = float(random_value[0])
+            freq_range = float(random_value[1])
+            num_files = int(random_value[2])
+            interval_random = range(0, int(num_files)+1, 1)
+            log.write("\n   Value up:  %.1f,  Freq range:  %.1f,  Numbers of files: %.1f" % (
+                float(value_up), float(freq_range), int(num_files)))
+        else:
+            log.write("This opportunity is not implemented yet ...")
+            
+        if options.QH:
+            qh_print_format = "\n\n   {:<39} {:>13} {:>13} {:>10} {:>13} {:>13} {:>10} {:>10} {:>13} {:>16}"
+            if options.spc and options.cosmo_int:
+                log.write(qh_print_format.format("Structure", "Try", "E", "ZPE", "H_SPC", "qh-H_SPC", "T.S", "T.qh-S",
+                                                 "G(T)_SPC", "COSMO-RS-qh-G(T)_SPC"), thermodata=True)
+            elif options.cosmo_int:
+                log.write(qh_print_format.format("Structure", "Try", "E", "ZPE", "H", "qh-H", "T.S", "T.qh-S", "G(T)",
+                                                 "qh-G(T)", "COSMO-RS-qh-G(T)"), thermodata=True)
+            elif options.spc:
+                log.write(qh_print_format.format("Structure", "Try", "E", "ZPE","H_SPC", "qh-H_SPC", "T.S", "T.qh-S",
+                                                 "G(T)_SPC", "qh-G(T)_SPC"), thermodata=True)
+            else:
+                log.write(qh_print_format.format("Structure", "Try", "E", "ZPE", "H", "qh-H", "T.S", "T.qh-S", "G(T)",
+                                                 "qh-G(T)"), thermodata=True)
+        else:
+            print_format_3 = "\n\n  {:<40} {:>13} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>16}"
+            if options.spc and options.cosmo_int:
+                log.write(print_format_3.format("Structure", "Try", "E", "ZPE", "H_SPC", "T.S", "T.qh-S", "G(T)_SPC",
+                                                "COSMO-RS-qh-G(T)_SPC"), thermodata=True)
+            elif options.cosmo_int:
+                log.write(print_format_3.format("Structure", "Try", "E", "ZPE", "H", "T.S", "T.qh-S", "G(T)", "qh-G(T)",
+                                                "COSMO-RS-qh-G(T)"), thermodata=True)
+            elif options.spc:
+                log.write(print_format_3.format("Structure", "Try", "E", "ZPE", "H_SPC", "T.S", "T.qh-S", "G(T)_SPC",
+                                                "qh-G(T)_SPC"), thermodata=True)
+            else:
+                log.write(print_format_3.format("Structure", "Try", "E", "ZPE", "H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"),
+                          thermodata=True)
+        if options.ssymm or options.symmbyhand:
+            log.write('{:>13}'.format("Point Group"), thermodata=True)
+
+        for h, file in enumerate(files):        # Random interval
+            log.write("\n" + stars)
+            interval_bbe_data.append([])
+            for i in range(len(interval_random)):  # Iterate through the random range
+                rand = int(interval_random[i])
+                linear_warning = []
+                interval_bbe_data[h].append(bbe)
+                linear_warning.append(bbe.linear_warning) 
+                if rand == 0:
+                    bbe = calc_bbe(file, options.QS, options.QH, options.S_freq_cutoff, options.H_freq_cutoff, options.temperature, 0, 0, num_files, rand, options.symmbyhand, options.norot, 
+                                   conc, options.freq_scale_factor, options.freespace, options.spc, options.invert,
+                                   0.0, cosmo=cosmo_option, inertia=options.inertia, g4=options.g4, glowfreq=options.glowfreq)
+                    interval_bbe_data[h].append(bbe)
+                else:
+                    bbe = calc_bbe(file, options.QS, options.QH, options.S_freq_cutoff, options.H_freq_cutoff, options.temperature, value_up, freq_range, num_files, rand, options.symmbyhand,options.norot, 
+                                   conc, options.freq_scale_factor, options.freespace, options.spc, options.invert,
+                                   0.0, cosmo=cosmo_option, inertia=options.inertia, g4=options.g4, glowfreq=options.glowfreq)
+                    interval_bbe_data[h].append(bbe)
+                if linear_warning == [['Warning! Potential invalid calculation of linear molecule from Gaussian.']]:
+                    log.write("\nx  ")
+                    log.write('{:<39}'.format(os.path.splitext(os.path.basename(file))[0]), thermodata=True)
+                    log.write('             Warning! Potential invalid calculation of linear molecule from Gaussian ...')
+                else:
+                    # Gaussian spc files
+                    if hasattr(bbe, "scf_energy") and not hasattr(bbe, "gibbs_free_energy"):
+                        log.write("\nx  " + '{:<39}'.format(os.path.splitext(os.path.basename(file))[0]))
+                    # ORCA spc files
+                    elif not hasattr(bbe, "scf_energy") and not hasattr(bbe, "gibbs_free_energy"):
+                        log.write("\nx  " + '{:<39}'.format(os.path.splitext(os.path.basename(file))[0]))
+                    if not hasattr(bbe, "gibbs_free_energy"):
+                        log.write("Warning! Couldn't find frequency information ...")
+                    else:
+                        log.write("\no  ")
+                        log.write('{:<39} {:12}'.format(os.path.splitext(os.path.basename(file))[0], int(rand)), 
+                                  thermodata=True)
+                        # if not options.media:
+                        if all(getattr(bbe, attrib) for attrib in
+                               ["scf_energy", "zpe", "enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
+                            if options.QH:
+                                if options.cosmo_int:
+                                    log.write('{:15.6f} {:10.6f} {:13.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(bbe.scf_energy, bbe.zpe,
+                                        bbe.enthalpy, bbe.qh_enthalpy, (options.temperature * bbe.entropy),
+                                        (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.cosmo_qhg),
+                                        thermodata=True)
+                                else:
+                                    log.write('{:15.6f} {:10.6f} {:13.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(bbe.scf_energy, bbe.zpe,
+                                        bbe.enthalpy, bbe.qh_enthalpy, (options.temperature * bbe.entropy),
+                                        (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy),
+                                        thermodata=True)
+                            else:
+                                if options.cosmo_int:
+                                    log.write('{:15.6f} {:10.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(bbe.scf_energy, bbe.zpe, bbe.enthalpy, (
+                                            options.temperature * bbe.entropy), (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy,
+                                                                                                     bbe.cosmo_qhg),
+                                              thermodata=True)
+                                else:
+                                    log.write('{:15.6f} {:10.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(bbe.scf_energy, bbe.zpe, bbe.enthalpy, (
+                                            options.temperature * bbe.entropy), (options.temperature * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy),
+                                              thermodata=True)
+                        if options.media is not False and options.media.lower() in solvents and options.media.lower() == \
+                                os.path.splitext(os.path.basename(file))[0].lower():
+                            log.write("  Solvent: {:4.2f}M ".format(media_conc))
+                if options.ssymm or options.symmbyhand:
+                    if hasattr(bbe, "qh_gibbs_free_energy"):
+                        log.write('{:>13}'.format(bbe.point_group))
+                    else:
+                        log.write('{:>37}'.format('---'))
+            log.write("\n" + stars + "\n")
     # Running a variable temperature analysis of the enthalpy, entropy and the free energy
     elif options.temperature_interval:
         log.write("\n\n   Variable-Temperature analysis of the enthalpy, entropy and the entropy at a constant pressure between")
@@ -1249,7 +1378,7 @@ def main():
             log.write("\n   T init:  %.1f,   T final: %.1f" % (interval[0], interval[-1]))
 
         if options.QH:
-            qh_print_format = "\n\n   {:<39} {:>13} {:>24} {:>13} {:>10} {:>10} {:>13} {:>13}"
+            qh_print_format = "\n\n   {:<39} {:>13} {:>24} {:>13} {:>10} {:>10} {:>13} {:>16}"
             if options.spc and options.cosmo_int:
                 log.write(qh_print_format.format("Structure", "Temp/K", "H_SPC", "qh-H_SPC", "T.S", "T.qh-S",
                                                  "G(T)_SPC", "COSMO-RS-qh-G(T)_SPC"), thermodata=True)
@@ -1263,7 +1392,7 @@ def main():
                 log.write(qh_print_format.format("Structure", "Temp/K", "H", "qh-H", "T.S", "T.qh-S", "G(T)",
                                                  "qh-G(T)"), thermodata=True)
         else:
-            print_format_3 = '\n\n   {:<39} {:>13} {:>24} {:>10} {:>10} {:>13} {:>13}'
+            print_format_3 = '\n\n   {:<39} {:>13} {:>24} {:>10} {:>10} {:>13} {:>16}'
             if options.spc and options.cosmo_int:
                 log.write(print_format_3.format("Structure", "Temp/K", "H_SPC", "T.S", "T.qh-S", "G(T)_SPC",
                                                 "COSMO-RS-qh-G(T)_SPC"), thermodata=True)
@@ -1293,7 +1422,7 @@ def main():
                     cosmo_option = gsolv_dicts[i][file]
                 if options.cosmo_int is False:
                     # haven't implemented D3 for this option
-                    bbe = calc_bbe(file, options.QS, options.QH, options.S_freq_cutoff, options.H_freq_cutoff, temp,
+                    bbe = calc_bbe(file, options.QS, options.QH, options.S_freq_cutoff, options.H_freq_cutoff, temp, value_up, freq_range, 0, 0, options.symmbyhand, options.norot, 
                                    conc, options.freq_scale_factor, options.freespace, options.spc, options.invert,
                                    0.0, cosmo=cosmo_option, inertia=options.inertia, g4=options.g4, glowfreq=options.glowfreq)
                 interval_bbe_data[h].append(bbe)
@@ -1320,23 +1449,23 @@ def main():
                                ["enthalpy", "entropy", "qh_entropy", "gibbs_free_energy", "qh_gibbs_free_energy"]):
                             if options.QH:
                                 if options.cosmo_int:
-                                    log.write(' {:24.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(
+                                    log.write(' {:24.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(
                                         bbe.enthalpy, bbe.qh_enthalpy, (temp * bbe.entropy),
                                         (temp * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.cosmo_qhg),
                                         thermodata=True)
                                 else:
-                                    log.write(' {:24.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(
+                                    log.write(' {:24.6f} {:13.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(
                                         bbe.enthalpy, bbe.qh_enthalpy, (temp * bbe.entropy),
                                         (temp * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy),
                                         thermodata=True)
                             else:
                                 if options.cosmo_int:
-                                    log.write(' {:24.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(bbe.enthalpy, (
+                                    log.write(' {:24.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(bbe.enthalpy, (
                                             temp * bbe.entropy), (temp * bbe.qh_entropy), bbe.gibbs_free_energy,
                                                                                                      bbe.cosmo_qhg),
                                               thermodata=True)
                                 else:
-                                    log.write(' {:24.6f} {:10.6f} {:10.6f} {:13.6f} {:13.6f}'.format(bbe.enthalpy, (
+                                    log.write(' {:24.6f} {:10.6f} {:10.6f} {:13.6f} {:16.6f}'.format(bbe.enthalpy, (
                                             temp * bbe.entropy), (temp * bbe.qh_entropy), bbe.gibbs_free_energy, bbe.qh_gibbs_free_energy),
                                               thermodata=True)
                         if options.media is not False and options.media.lower() in solvents and options.media.lower() == \
