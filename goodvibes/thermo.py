@@ -395,7 +395,7 @@ class calc_bbe:
         cosmo_qhg (float): quasi-harmonic Gibbs free energy with COSMO-RS correction for Gibbs free energy of solvation
         linear_warning (bool): flag for linear molecules, may be missing a rotational constant.
     """
-    def __init__(self, file, QS, QH, s_freq_cutoff, H_FREQ_CUTOFF, temperature, conc, freq_scale_factor, solv, spc,
+    def __init__(self, file, QS, QH, s_freq_cutoff, H_FREQ_CUTOFF, temperature, value_up, freq_range, num_files, rand, symmbyhand, NoRot, conc, freq_scale_factor, solv, spc,
                  invert, d3_term, ssymm=False, cosmo=None, mm_freq_scale_factor=False,inertia='global',g4=False, glowfreq=''):
         # List of frequencies and default values
         im_freq_cutoff, frequency_wn, im_frequency_wn, rotemp, roconst, linear_mol, link, freqloc, linkmax, symmno, self.cpu, inverted_freqs = 0.0, [], [], [
@@ -832,22 +832,27 @@ class calc_bbe:
             u_trans = calc_translational_energy(temperature)
             s_trans = calc_translational_entropy(molecular_mass, conc, temperature, solv)
             s_elec = calc_electronic_entropy(self.mult)
-
             # Rotational and Vibrational contributions to the energy entropy
             if len(frequency_wn) > 0:
+                if value_up > 0:
+                    frequency_wn = [np.random.uniform(i+freq_range, i-freq_range) for i in frequency_wn if i < value_up] + [x for x in frequency_wn if x >= value_up]
+                    frequency_wn = [f for f in frequency_wn if f > 0] + [f*(-1) for f in frequency_wn if f < 0]
+                    frequency_wn = sorted(frequency_wn)
                 zpe = calc_zeropoint_energy(frequency_wn, freq_scale_factor, fract_modelsys)
                 u_rot = calc_rotational_energy(self.zero_point_corr, symmno, temperature, linear_mol)
                 u_vib = calc_vibrational_energy(frequency_wn, temperature, freq_scale_factor, fract_modelsys)
                 s_rot = calc_rotational_entropy(self.zero_point_corr, linear_mol, symmno, rotemp, temperature)
-
+                if NoRot:
+                    u_rot = 0.0
+                    s_rot = 0.0
                 # Calculate harmonic entropy, free-rotor entropy and damping function for each frequency
                 Svib_rrho = calc_rrho_entropy(frequency_wn, temperature, freq_scale_factor, fract_modelsys)
-
+                
                 if s_freq_cutoff > 0.0:
                     Svib_rrqho = calc_rrho_entropy(cutoffs, temperature, freq_scale_factor, fract_modelsys)
                 Svib_free_rot = calc_freerot_entropy(frequency_wn, temperature, freq_scale_factor, fract_modelsys,file, inertia, self.roconst)
                 S_damp = calc_damp(frequency_wn, s_freq_cutoff)
-
+                
                 # check for qh
                 if QH:
                     Uvib_qrrho = calc_qRRHO_energy(frequency_wn, temperature, freq_scale_factor)
