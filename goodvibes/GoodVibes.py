@@ -638,16 +638,16 @@ def main():
     parser.add_argument("-q", dest="Q", action="store_true", default=False,
                         help="Quasi-harmonic entropy correction and enthalpy correction applied (default S=Grimme, "
                              "H=Head-Gordon)")
-    parser.add_argument("--qs", dest="QS", default="grimme", type=str.lower, metavar="QS",
+    parser.add_argument("--qs", dest="QS", default="truhlar", type=str.lower, metavar="QS",
                         choices=('grimme', 'truhlar'),
                         help="Type of quasi-harmonic entropy correction (Grimme or Truhlar) (default Grimme)", )
     parser.add_argument("--qh", dest="QH", action="store_true", default=False,
                         help="Type of quasi-harmonic enthalpy correction (Head-Gordon)")
-    parser.add_argument("-f", dest="freq_cutoff", default=100, type=float, metavar="FREQ_CUTOFF",
-                        help="Cut-off frequency for both entropy and enthalpy (wavenumbers) (default = 100)", )
-    parser.add_argument("--fs", dest="S_freq_cutoff", default=100.0, type=float, metavar="S_FREQ_CUTOFF",
-                        help="Cut-off frequency for entropy (wavenumbers) (default = 100)")
-    parser.add_argument("--fh", dest="H_freq_cutoff", default=100.0, type=float, metavar="H_FREQ_CUTOFF",
+    parser.add_argument("-f", dest="freq_cutoff", default=175, type=float, metavar="FREQ_CUTOFF",
+                        help="Cut-off frequency for both entropy and enthalpy (wavenumbers) (default = 175)", )
+    parser.add_argument("--fs", dest="S_freq_cutoff", default=175.0, type=float, metavar="S_FREQ_CUTOFF",
+                        help="Cut-off frequency for entropy (wavenumbers) (default = 175)")
+    parser.add_argument("--fh", dest="H_freq_cutoff", default=175.0, type=float, metavar="H_FREQ_CUTOFF",
                         help="Cut-off frequency for enthalpy (wavenumbers) (default = 100)")
     parser.add_argument("-t", dest="temperature", default=298.15, type=float, metavar="TEMP",
                         help="Temperature (K) (default 298.15)")
@@ -723,11 +723,11 @@ def main():
     # Parse Arguments
     (options, args) = parser.parse_known_args()
     # If requested, turn on head-gordon enthalpy correction
-    if options.Q: options.QH = True
+    #if options.Q: options.QH = True
     if options.QH:
-        stars = "   " + "*" * 142
+        stars = "   " + "*" * 145
     else:
-        stars = "   " + "*" * 128
+        stars = "   " + "*" * 131
     # If necessary, create an xyz file for Cartesians
     if options.xyz: xyz = xyz_out("Goodvibes", "xyz", "output")
     # If user has specified different file extensions
@@ -937,7 +937,7 @@ def main():
             cosmo_solv = None
             log.write('\n\n   Warning! COSMO-RS file ' + options.cosmo + ' requested but not found')
 
-    if options.freq_cutoff != 100.0:
+    if options.freq_cutoff != 175.0:
         options.S_freq_cutoff = options.freq_cutoff
         options.H_freq_cutoff = options.freq_cutoff
 
