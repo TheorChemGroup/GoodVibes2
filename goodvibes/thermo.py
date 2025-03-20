@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, absolute_import
 
-import ctypes, math, os.path, sys
+import ctypes, math, os.path, sys, re
 import numpy as np
 
 # Importing regardless of relative import
@@ -468,7 +468,7 @@ class calc_bbe:
                             all_freqs.append(fr)
                         except IndexError:
                             pass
-                    most_low_freq = min(all_freqs)
+                    lowest_freq = min(all_freqs)
                     for j in range(2, 5):
                         try:
                             x = float(line.strip().split()[j])
@@ -487,7 +487,7 @@ class calc_bbe:
                                 if invert is not False:
                                     if invert == 'auto':
                                         if "TSFreq" in self.job_type:
-                                            if x == most_low_freq:
+                                            if x == lowest_freq:
                                                 im_frequency_wn.append(x)
                                             else:
                                                 frequency_wn.append(x * -1.)
@@ -549,6 +549,7 @@ class calc_bbe:
                         symmno = int((line.strip().split()[3]).split(".")[0])
                 # Grab point group
                 elif line.strip().startswith('Full point group'):
+                    self.point_group = line.strip().split()[3].lower().capitalize()                                                               
                     if line.strip().split()[3] == 'D*H' or line.strip().split()[3] == 'C*V':
                         linear_mol = 1
                 # Grab rotational constants
@@ -583,6 +584,7 @@ class calc_bbe:
                     self.cpu = [days, hours, mins, secs, msecs]
 
         if self.sp_program == 'NWChem' or self.program == 'NWChem':
+            print("Parsing NWChem output...")                                 
             # Iterate
             for i,line in enumerate(g_output):
                 #scanning for low frequencies...
@@ -629,6 +631,7 @@ class calc_bbe:
                         symmno = int(line.strip().split()[-1][0:-1])
                 # Grab point group
                 elif line.strip().find('symmetry detected') != -1:
+                    self.point_group = line.strip().split()[0].lower().capitalize()                                                               
                     if line.strip().split()[0] == 'D*H' or line.strip().split()[0] == 'C*V':
                         linear_mol = 1
                 # Grab rotational constants (convert cm-1 to GHz)
@@ -650,8 +653,6 @@ class calc_bbe:
                     secs = line.strip().split()[3][0:-1]
                     msecs = 0
                     self.cpu = [days,hours,mins,secs,msecs]
-
-        self.inverted_freqs = inverted_freqs
 
         if glowfreq != '':
             frequency_wn = []
@@ -889,7 +890,6 @@ class calc_bbe:
                 self.scf_energy += d3_term
             else:
                 self.sp_energy += d3_term
-
             # Add terms (converted to au) to get Free energy - perform separately
             # for harmonic and quasi-harmonic values out of interest
             self.enthalpy = self.scf_energy + (u_trans + u_rot + u_vib + GAS_CONSTANT * temperature) / J_TO_AU
