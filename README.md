@@ -1,18 +1,10 @@
 ![GoodVibes](https://github.com/patonlab/GoodVibes/blob/master/GoodVibes.png)
 ===
-
-[![Build Status](https://app.travis-ci.com/patonlab/GoodVibes.svg?branch=master)](https://app.travis-ci.com/github/patonlab/GoodVibes)
-[![PyPI version](https://badge.fury.io/py/goodvibes.svg)](https://badge.fury.io/py/goodvibes)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/goodvibes/badges/downloads.svg)](https://anaconda.org/conda-forge/goodvibes)
-[![Documentation Status](https://readthedocs.org/projects/goodvibespy/badge/?version=stable)](https://goodvibespy.readthedocs.io/en/stable/?badge=stable)
-[![DOI](https://zenodo.org/badge/54848929.svg)](https://zenodo.org/badge/latestdoi/54848929)
-[![Anaconda-Server Badge](https://anaconda.org/conda-forge/goodvibes/badges/license.svg)](https://anaconda.org/conda-forge/goodvibes)
-
 GoodVibes2 is a Python program to compute thermochemical data from one or a series of electronic structure calculations in Gaussian or ORCA.
 
-It is a fork of GoodVibes developed by Paton's group, which has been used since 2015 by several groups, primarily to correct the poor description of low frequency vibrations by the rigid-rotor harmonic oscillator treatment.
+It is a fork of GoodVibes developed by [Paton Research group](http://patonlab.com/), which has been used since 2015 by several groups, primarily to correct the poor description of low frequency vibrations by the rigid-rotor harmonic oscillator treatment.
 
-In GoodVibes2 contributions from low frequencies are virtually omitted via the use of Truhlar's approximation with cutoff of 175 cm<sup>-1</sup>, which we have found to be the most robust and accurate in Velmiskina et al. JPC, 2025, doi: [10.1063/5.0255622].
+In GoodVibes2 contributions from low frequencies are virtually omitted via the use of Truhlar's approximation with cutoff of 175 cm<sup>-1</sup>, which we have found to be the most robust and accurate in [Velmiskina et al. JPC, 2025](10.1063/5.0255622).
 
 The following description is mostly identical to the original GoodVibes:
 
