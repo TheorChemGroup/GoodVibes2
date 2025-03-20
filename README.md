@@ -8,14 +8,19 @@
 [![DOI](https://zenodo.org/badge/54848929.svg)](https://zenodo.org/badge/latestdoi/54848929)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/goodvibes/badges/license.svg)](https://anaconda.org/conda-forge/goodvibes)
 
-GoodVibes is a Python program to compute thermochemical data from one or a series of electronic structure calculations. It has been used since 2015 by several groups, primarily to correct the poor description of low frequency vibrations by the rigid-rotor harmonic oscillator treatment. The current version includes thermochemistry at variable temperature/concentration, various quasi-harmonic entropy and enthalpy schemes, automated detection of frequency scaling factors, D3-dispersion corrections calculations, Boltzmann averaging, duplicate conformer detection, automated tabulation and plotting of energy profiles, and error checking. Developed by [Robert Paton](https://orcid.org/0000-0002-0104-4166), [Ignacio Funes-Ardoiz](https://orcid.org/0000-0002-5843-9660), and members of the [Paton Research Group, Colorado State](http://patonlab.com/):  [Guilian Luchini](https://orcid.org/0000-0003-0135-9624), [Juan V. Alegre-Requena](https://orcid.org/0000-0002-0769-7168), and [Yanfei Guan](https://orcid.org/0000-0003-1817-0190) . Integration with Travis CI testing by [Jaime Rodríguez-Guerra](https://orcid.org/0000-0001-8974-1566) with additions from Guilian Luchini.
+GoodVibes2 is a Python program to compute thermochemical data from one or a series of electronic structure calculations in Gaussian or ORCA.
 
-All (electronic, translational, rotational and vibrational) partition functions are recomputed and will be adjusted to any temperature or concentration. These default to 298.15 Kelvin and 1 atmosphere. 
+It is a fork of GoodVibes developed by Paton's group, which has been used since 2015 by several groups, primarily to correct the poor description of low frequency vibrations by the rigid-rotor harmonic oscillator treatment.
+
+In GoodVibes2 contributions from low frequencies are virtually omitted via the use of Truhlar's approximation with cutoff of 175 cm<sup>-1</sup>, which we have found to be the most robust and accurate in Velmiskina et al. JPC, 2025, doi: [10.1063/5.0255622].
+
+The following description is mostly identical to the original GoodVibes:
+
+This version includes thermochemistry at variable temperature/concentration, various quasi-harmonic entropy and enthalpy schemes, automated detection of frequency scaling factors, D3-dispersion corrections calculations, Boltzmann averaging, duplicate conformer detection, automated tabulation and plotting of energy profiles, and error checking.
+
+All (electronic, translational, rotational and vibrational) partition functions are recomputed and will be adjusted to any temperature or concentration. These default to 298.15 Kelvin and 1 atmosphere.
 
 The program will attempt to parse the level of theory and basis set used in the calculations and then try to apply the appropriate vibrational (zpe) scaling factor. Scaling factors are taken from the [Truhlar group database](https://t1.chem.umn.edu/freqscale/index.html).
-
-#### Documentation
-GoodVibes documentation can be found on our [read-the-docs page](https://goodvibespy.readthedocs.io/en/latest/).
 
 #### Quasi-Harmonic Approximation
 Two types of quasi-harmonic approximation are readily applied. The first is vibrational entropy: below a given cut-off value vibrational normal modes are not well described by the rigid-rotor-harmonic-oscillator (RRHO) approximation and an alternative expression is instead used to compute the associated entropy. The quasi-harmonic vibrational entropy is always less than or equal to the standard (RRHO) value obtained using Gaussian. Two literature approaches have been implemented. In the simplest approach, from [Cramer and Truhlar](http://pubs.acs.org/doi/abs/10.1021/jp205508z),<sup>1</sup> all frequencies below the cut-off are uniformly shifted up to the cut-off value before entropy calculation in the RRHO approximation. Alternatively, as proposed by [Grimme](http://onlinelibrary.wiley.com/doi/10.1002/chem.201200497/full),<sup>2</sup> entropic terms for frequencies below the cut-off are obtained from the free-rotor approximation; for those above the RRHO expression is retained. A damping function is used to interpolate between these two expressions close to the cut-off frequency.
@@ -23,35 +28,37 @@ Two types of quasi-harmonic approximation are readily applied. The first is vibr
 The second type of quasi-harmonic approximation available is applied to the vibrational energy used in enthalpy calculations. Similar to the entropy corrections, the enthalpy correction implements a quasi-harmonic correction to the RRHO vibrational energy computed in DFT methods. The quasi-harmonic enthalpy value as specified by [Head-Gordon](https://pubs.acs.org/doi/10.1021/jp509921r)<sup>3</sup> will be less than or equal to the uncorrected value using the RRHO approach, as the quasi-RRHO value of the vibrational energy used to compute the enthalpy is damped to approach a value of 0.5RT, opposed to the RRHO value of RT. Because of this, the quasi-harmonic enthalpy correction is appropriate for use in systems and reactions resulting in a loss of a rotational or translational degree of freedom.
 
 #### Installation
-*  With pypi: `pip install goodvibes`
-*  With conda: `conda install -c patonlab goodvibes`
-*  Manually Cloning the repository https://github.com/bobbypaton/GoodVibes.git and then adding the location of the GoodVibes directory to the PYTHONPATH environment variable.
-*  Run the script with your Gaussian output files (the program expects .log or .out extensions). It has been tested with Python 2 and 3 on Linux, macOS and Windows
+*  Manually Cloning the repository https://github.com/TheorChemGroup/GoodVibes2.git and then adding the location of the GoodVibes directory to the PYTHONPATH environment variable.
+*  Run the script with your Gaussian or ORCA output files (the program expects .log or .out extensions)
 
-#### Citing GoodVibes
-Luchini, G.; Alegre-Requena, J. V.; Funes-Ardoiz, I.; Paton, R. S. GoodVibes: Automated Thermochemistry for Heterogeneous Computational Chemistry Data. *F1000Research*, **2020**, *9*, 291 [**DOI:** 10.12688/f1000research.22758.1](https://doi.org/10.12688/f1000research.22758.1)
+#### Citing GoodVibes2
+J. Velmiskina, TheorChemGroup/GoodVibes2, 2025, accessed 20 March 2025. https://github.com/TheorChemGroup/GoodVibes2
 
-#### Using GoodVibes
+#### Using GoodVibes2
 
 ```python
 python -m goodvibes [-q] [--qs grimme/truhlar] [--qh] [-f cutoff_freq] [--fs S_cutoff_freq] [--fh H_cutoff_freq]
 [--check] [-t temperature] [-c concentration] [--ti 't_initial, t_final, step'] [--ee] [--bav "global" or "conf"]
+[--symmbyhand]
 [--cosmo cosmo_filename] [--cosmoint cosmo_filename,initial_temp,final_temp] [-v frequency_scale_factor]
 [--vmm mm_freq_scale_factor][--ssymm] [--spc link/filename] [--boltz] [--dup][--pes pes_yaml] [--nogconf]
 [--graph graph_yaml] [--cpu] [--imag] [--invertifreq] [--freespace solvent_name] [--output output_name]
 [--media solvent_name] [--xyz] [--csv] [--custom_ext file_extension] <output_file(s)>
 ```
 *	The `-h` option gives help by listing all available options, default values and units, and proper usage.
-*   The `-q` option turns on quasi-harmonic corrections to both entropy and enthalpy, defaulting to the Grimme method for entropy and the Head-Gordon enthalpy correction.
+*   The `-q` option turns on quasi-harmonic corrections to both entropy and enthalpy, defaulting to the Truhlar method for entropy and the Head-Gordon enthalpy correction.
 *	The `--qs` option selects the approximation for the quasi-harmonic entropic correction: `--qs truhlar` or `--qs grimme` request the options explained above. Both avoid the tendency of RRHO vibrational entropies towards infinite values for low frequencies. If not specified this defaults to Grimme's expression.
 *	The `--qh` option selects the approximation for the quasi-harmonic enthalpy correction. Calling this argument requests the enthalpy correction option explained above. This replaces harmonic energy contributions with a quasi-RRHO vibrational energy term. If not specified the Head-Gordon expression is defaulted.
-*	The `-f` option specifies the frequency cut-off for both entropy and enthalpy calculations (in wavenumbers) i.e. `-f 10` would use 10 cm<sup>-1</sup> when calculating thermochemical values. The default value is 100 cm<sup>-1</sup>. N.B. when set to zero all thermochemical values match standard (i.e. harmonic) Gaussian quantities.
-*	The `--fs` option specifies the frequency cut-off for only entropy calculations(in wavenumbers). `--fs 40` would use 40 cm<sup>-1</sup> when calculating entropies. The default value is 100 cm<sup>-1</sup>.
-*	The `--fh` option specifies the frequency cut-off for only enthalpy calculations (in wavenumbers).`--fh 200` would use 200 cm<sup>-1</sup> when calculating enthalpies. The default value is 100 cm<sup>-1</sup>.
+*	The `-f` option specifies the frequency cut-off for both entropy and enthalpy calculations (in wavenumbers) i.e. `-f 10` would use 10 cm<sup>-1</sup> when calculating thermochemical values. The default value is 175 cm<sup>-1</sup>. N.B. when set to zero all thermochemical values match standard (i.e. harmonic) Gaussian quantities.
+*	The `--fs` option specifies the frequency cut-off for only entropy calculations(in wavenumbers). `--fs 40` would use 40 cm<sup>-1</sup> when calculating entropies. The default value is 175 cm<sup>-1</sup>.
+*	The `--fh` option specifies the frequency cut-off for only enthalpy calculations (in wavenumbers).`--fh 200` would use 200 cm<sup>-1</sup> when calculating enthalpies. The default value is 175 cm<sup>-1</sup>.
 *	The `--check` option applies the checks specified above to the calculation output files and displays a pass or fail message to the user.
 *	The `-t` option specifies temperature (in Kelvin). N.B. This does not have to correspond to the temperature used in the Gaussian calculation since all thermal quantities are reevalulated by GoodVibes at the requested temperature. The default value is 298.15 K.
 *	The `-c` option specifies concentration (in mol/l).  It is important to notice that the ideal gas approximation is used to relate the concentration with the pressure, so this option is the same as the Gaussian Pressure route line specification. The correction is applied to the Sackur-Tetrode equation of the translational entropy e.g. `-c 1` corrects to a solution-phase standard state of 1 mol/l. The default is 1 atmosphere.
 *	The `--ti` option specifies a temperature interval (for example to see how a free energy barrier changes with the temperature). Usage is `--ti 'initial_temperature, final_temperature, step_size'`. The step_size is optional, the default is set by the relationship (final_temp-initial_temp) / 10
+*	The `--symmbyhand` option takes a file naming pattern (such as `"*_symm..."`) with files named as structure_C1.log, structure_D4h.out, and will use symmetry number corresponding to the symmetry from name of file for the system.
+*  The `--random` option simulate the spread of low frequencies of the molecule. Usage is `--random cutoff_value,spread_range,number_of_steps`.
+*  The `--norot` option turn off rotational contributions to the Gibbs free energy.
 *	The `--ee` option takes a file naming pattern (such as `"*_R*:*_S*"`) with files named as structure_R.log, structure_S.log, and will calculate and display values for stereoisomer excess (in %), ratio, major isomer present, and ddG.
 *	The `--cosmo` option can be used to read Gibbs Free Energy of Solvation data from a COSMO-RS .out formatted file. GSOLV should be used as a COSMO-RS input with no argument. `-c 1` should be used in conjunction with this argument.
 *   The `--cosmo_int` option allows for Gibbs Free Energy of Solvation calculated using COSMO-RS with a temperature interval to be applied at a range of temperatures. Since temperature gaps may not be consistent, the interval is automatically detected. Usage is `--cosmo_int cosmo_gsolv.out,initial_temp,final_temp`. GoodVibes will detect temperatures within the range provided.
@@ -66,7 +73,7 @@ python -m goodvibes [-q] [--qs grimme/truhlar] [--qh] [-f cutoff_freq] [--fs S_c
 *	The `--graph` option takes a .yaml file input (see template below) along with calculation output files and will compute and graph relative Gibbs free-energy values along a reaction path (requires matplotlib library to be installed)
 *   The `--cpu` option will add up all of the CPU time across all files (including single point calculations if requested).
 *   The `--imag` option will print any imaginary frequencies (in wavenumbers) for each structure. Presently, all are reported. The hard-coded variable im_freq_cutoff can be edited to change this. To generate new input files (i.e. if this is an undesirable imaginary frequency) see [pyQRC](https://github.com/bobbypaton/pyQRC)
-*   The `--invertifreq` option will convert any low lying imaginary frequencies lying in a certain range to positive values (in wavenumbers). The default cutoff is to make imaginary frequencies above -50 cm<sup>-1</sup> positive.
+*   The `--invertifreq auto` option will convert any low lying imaginary frequencies lying in a certain range to positive values.
 *	The `--freespace` option specifies the solvent. The amount of free space accessible to the solute is computed based on the solvent's molecular and bulk densities. This is then used to correct the volume available to each molecule from the ideal gas approximation used in the Sackur-Tetrode calculation of translational entropy, as proposed by [Shakhnovich and Whitesides](http://pubs.acs.org/doi/abs/10.1021/jo970944f).<sup>5</sup> The keywords H2O, toluene, DMF (N,N-dimethylformamide), AcOH (acetic acid) and chloroform are recognized.
 *	The `--output` option is used to change the default output file name to a specified name instead. Use as  `--output NAME` to change the name of the output file of thermochemical data from "GoodVibes.dat" to "GoodVibes_NAME.dat"
 *	The `--media` option applies an entropy correction to calculations done on solvent molecules calculated from their standard concentration. `-c 1` should be used in conjunction with this argument.
