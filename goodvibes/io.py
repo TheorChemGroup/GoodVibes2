@@ -2,6 +2,7 @@
 from __future__ import print_function, absolute_import
 
 import os.path
+import re
 import numpy as np
 
 from cclib.io import ccread
@@ -739,17 +740,52 @@ def read_initial(file):
 
     return level_of_theory, solvation_model, progress, orientation, dft_used
 
-def gaussian_jobtype(filename):
+def jobtype(filename):
+    with open(filename) as f:
+        data = f.readlines()
+    for line in data:
+        # Determine program
+        if "Gaussian" in line:
+            program = "Gaussian"
+            break
+        if "* O   R   C   A *" in line:
+            program = "Orca"
+            break
+        if "NWChem" in line:
+            program = "NWChem"
+            break
     """Read the jobtype from a Gaussian archive string."""
     job = ''
-    with open(filename) as f:
-        for line in f:
-            if line.strip().find('\\SP\\') > -1:
-                job += 'SP'
-            if line.strip().find('\\FOpt\\') > -1:
-                job += 'GS'
-            if line.strip().find('\\FTS\\') > -1:
-                job += 'TS'
-            if line.strip().find('\\Freq\\') > -1:
-                job += 'Freq'
+    if program == 'Gaussian':
+        with open(filename) as f:
+            for line in f:
+                if line.strip().find('\\SP\\') > -1:
+                    job += 'SP'
+                if line.strip().find('\\FOpt\\') > -1:
+                    job += 'GS'
+                if line.strip().find('\\FTS\\') > -1:
+                    job += 'TS'
+                if line.strip().find('\\Freq\\') > -1:
+                    job += 'Freq'
+
+    if program == 'Orca':
+        start_marker = "INPUT FILE"
+        end_marker = "END"
+        capture = False
+        with open(filename) as f:
+            for line in f:
+                if line.strip().find('Single Point Calculation') > -1:
+                    job += 'SP'
+                if start_marker in line:
+                    capture = True
+                    continue
+                if end_marker in line:
+                    capture = False
+                    continue
+                if capture and re.search(r"\btightopt\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE) or capture and re.search(r"\bopt\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE):
+                    job += 'GS'
+                if capture and re.search(r"\boptts\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE):
+                    job += 'TS'
+                if capture and re.search(r"\bfreq\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE):
+                    job += 'Freq'
     return job
