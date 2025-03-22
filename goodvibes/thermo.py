@@ -710,6 +710,7 @@ class calc_bbe:
                 imags = []
                 imag_freqs = re.findall("imaginary mode", line)
                 if len(imag_freqs) > 0:
+                    lowest_freq = min(imag_freqs)
                     for im in imag_freqs:
                         x = float(line.strip().split()[1])
                         if invert is not False:
