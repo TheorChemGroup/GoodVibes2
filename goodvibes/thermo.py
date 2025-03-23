@@ -653,125 +653,76 @@ class calc_bbe:
                     secs = line.strip().split()[3][0:-1]
                     msecs = 0
                     self.cpu = [days,hours,mins,secs,msecs]
-
-        if glowfreq != '':
-            frequency_wn = []
-            if not os.path.exists(f'{glowfreq}.MECPprop'):
-                print(f'x  The {glowfreq}.MECPprop file provided in the glowfreq option doesn\'t exist!')
-                sys.exit()
-            elif not os.path.exists(f'{glowfreq}.ROVIBprop'):
-                print(f'x  The {glowfreq}.ROVIBprop file provided in the glowfreq option doesn\'t exist!')
-                sys.exit()
-            with open(f'{glowfreq}.MECPprop') as f:
-                prop_output = f.readlines()
-            for i, line in enumerate(prop_output):
-                if 'The molecules both have' in line:
-                    n_atoms = int(line.strip().split()[-2])
-                    break
-            with open(f'{glowfreq}.ROVIBprop') as f:
-                vib_output = f.readlines()
-            # currently, this only works for non-linear molecules
-            n_freqs = (n_atoms*3)-6
-            for i in range(2,2+n_freqs):
-                frequency_wn.append(float(vib_output[i].split()[-1]))
-        
+                    
         # ORCA5 file
         if self.sp_program == 'Orca' or self.program == 'Orca':
-            # Count number of links
-            f_iter = 0
+            frequency_wn = [] 
+            im_frequency_wn = []  
+            inverted_freqs = []
+            freqs_tmp_lst = []
+            
+            start_index = None
+            
             for i, line in enumerate(g_output):
-                # Only read first link + freq not other link jobs
-                if "ORCA TERMINATED NORMALLY" in line:
-                    linkmax += 1
-                else:
-                    frequency_wn = []
-                if len(re.findall('VIBRATIONAL FREQUENCIES', line)) > 0:
-                    freqloc = linkmax
-                    f_iter = i
-            # Iterate over output
-            if freqloc == 0:
-                freqloc = len(g_output)
-
-            for line in g_output:
-                # Link counter
-                if "ORCA TERMINATED NORMALLY" in line:
-                    link += 1
-                   # Reset frequencies if in final freq link
-                    if link == freqloc:
-                        frequency_wn = []
-                        im_frequency_wn = []
-                        if mm_freq_scale_factor is not False:
-                            fract_modelsys = []
+                if "VIBRATIONAL FREQUENCIES" in line:
+                    start_index = i
                 
-                # If spc specified will take last Energy from file, otherwise will break after freq calc
-                if not g4:
-                    if link > freqloc:
-                        break
-                imags = []
-                imag_freqs = re.findall("imaginary mode", line)
-                if len(imag_freqs) > 0:
-                    lowest_freq = min(imag_freqs)
-                    for im in imag_freqs:
-                        x = float(line.strip().split()[1])
-                        if invert is not False:
-                            if invert == 'auto':
-                                if "TSFreq" in self.job_type:
-                                    if x == lowest_freq:
-                                        im_frequency_wn.append(x)
-                                    else:
-                                        frequency_wn.append(x * -1.)
-                                        inverted_freqs.append(x)
-                                else:
-                                    frequency_wn.append(x * -1.)
-                                    inverted_freqs.append(x)
-                            elif x > -abs(float(invert)):
-                                frequency_wn.append(x * -1.)
-                                inverted_freqs.append(x)
-                            else:
-                                im_frequency_wn.append(x)
-                        else:
-                            im_frequency_wn.append(x)
-                                # Grab Multiplicity
-                
+                #Two values ​​are searched until the last block "VIBRATIONAL FREQUENCIES"
+                #Grab Multiplicity
                 if 'Multiplicity           Mult' in line.strip():
                     try:
                         self.mult = int(line.strip().split()[3])
                     except:
                         self.mult = int(line.split()[3])
                 # For QM calculations look for SCF energies, last one will be the optimized energy
-                elif line.strip().startswith('FINAL SINGLE POINT ENERGY'):
+                if line.strip().startswith('FINAL SINGLE POINT ENERGY'):
                     self.scf_energy = float(line.strip().split()[4])
-                            
-            for i, line in enumerate(g_output[f_iter:]):                
-                # Iterate over output: look out for low frequencies
-                if len(re.findall('\d+ cm\*\*-1*', line)) > 0:
-                    if mm_freq_scale_factor is not False:
-                        newline = g_output[i + 3]
-                    all_freqs = []
-                    for j in range(1,2):
+            if start_index is None:
+                print(f"\n  The file {file} does not have a line 'VIBRATIONAL FREQUENCIES'\n ")
+            else:
+                #Now the file is read only below "VIBRATIONAL FREQUENCIES"
+                for i, line in enumerate(g_output[start_index:]):
+                    if "NORMAL MODES" in line:   
+                        break
+                    parts = line.strip().split()
+                    if "cm**-1" in parts:
                         try:
-                            fr = float(line.strip().split()[j])
-                            all_freqs.append(fr)
-                        except IndexError:
-                            pass
-                    lowest_freq = min(all_freqs)
-                    for j in range(1,2):
-                        try:
-                            x = float(line.strip().split()[j])
-                            # If given MM freq scale factor fill the fract_modelsys array:
-                            if mm_freq_scale_factor is not False:
-                                y = float(newline.strip().split()[j]) / 100.0
-                                y = float('{:.6f}'.format(y))
+                            x = float(parts[1])
+                            freqs_tmp_lst.append(x)
+                        except ValueError:
+                            continue
+                lowest_freq = min(freqs_tmp_lst)
+            for line in g_output[start_index:]:
+                if re.findall(r"\d+:\s+([+-]?[\d.]+)\s+cm\*\*-1", line):
+                    try:
+                        x = float(line.strip().split()[1])
+                        if x > 0.00:
+                            frequency_wn.append(x)
+                            if mm_freq_scale_factor is not False: fract_modelsys.append(y)
+                        elif x < -1 * im_freq_cutoff:
+                            if invert is not False:
+                                if invert == 'auto':
+                                    if "TSFreq" in self.job_type:
+                                        if x == lowest_freq:
+                                            im_frequency_wn.append(x)
+                                        else:
+                                            frequency_wn.append(x * -1.)
+                                            inverted_freqs.append(x)
+                                    else:
+                                        frequency_wn.append(x * -1.)
+                                        inverted_freqs.append(x)
+                                elif abs(x) < abs(float(invert)):
+                                    frequency_wn.append(x * -1.)
+                                    inverted_freqs.append(x)
+                                else:
+                                    im_frequency_wn.append(x)
                             else:
-                                y = 1.0
-                            # Only deal with real frequencies
-                            if x > 0.00:
-                                frequency_wn.append(x)
-                                if mm_freq_scale_factor is not False: fract_modelsys.append(y)
-                        except IndexError:
-                            pass
+                                im_frequency_wn.append(x)
+                    except ValueError:
+                        pass
+                              
                 # Look for thermal corrections, paying attention to point group symmetry
-                elif line.strip().startswith('Zero point energy'):
+                if line.strip().startswith('Zero point energy'):
                     self.zero_point_corr = float(line.strip().split()[4])
                 # Grab molecular mass
                 elif line.strip().startswith('Total Mass'):
@@ -816,6 +767,27 @@ class calc_bbe:
                     self.cpu = [days, hours, mins, secs, msecs]
                     
         self.inverted_freqs = inverted_freqs
+        
+        if glowfreq != '':
+            frequency_wn = []
+            if not os.path.exists(f'{glowfreq}.MECPprop'):
+                print(f'x  The {glowfreq}.MECPprop file provided in the glowfreq option doesn\'t exist!')
+                sys.exit()
+            elif not os.path.exists(f'{glowfreq}.ROVIBprop'):
+                print(f'x  The {glowfreq}.ROVIBprop file provided in the glowfreq option doesn\'t exist!')
+                sys.exit()
+            with open(f'{glowfreq}.MECPprop') as f:
+                prop_output = f.readlines()
+            for i, line in enumerate(prop_output):
+                if 'The molecules both have' in line:
+                    n_atoms = int(line.strip().split()[-2])
+                    break
+            with open(f'{glowfreq}.ROVIBprop') as f:
+                vib_output = f.readlines()
+            # currently, this only works for non-linear molecules
+            n_freqs = (n_atoms*3)-6
+            for i in range(2,2+n_freqs):
+                frequency_wn.append(float(vib_output[i].split()[-1]))
 
         if symmbyhand:
             name, ext = os.path.splitext(file)
@@ -825,7 +797,7 @@ class calc_bbe:
                     point_group = n[4:].lower().capitalize()
                     symmno = pg_sm.get(point_group)
                     self.point_group = point_group
-           
+                    
         # Skip the calculation if unable to parse the frequencies or zpe from the output file
         if hasattr(self, "zero_point_corr") and rotemp:
             cutoffs = [s_freq_cutoff for freq in frequency_wn]
