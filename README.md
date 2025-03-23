@@ -37,7 +37,7 @@ python -m goodvibes [-q] [--qs grimme/truhlar] [--qh] [-f cutoff_freq] [--fs S_c
 [--media solvent_name] [--xyz] [--csv] [--custom_ext file_extension] <output_file(s)>
 <code>
 *	The `-h` option gives help by listing all available options, default values and units, and proper usage.
-*	The `-q` option turns on quasi-harmonic corrections to entropy, defaulting to the <b>Truhlar</b> method for entropy correction.
+*	The `-q` option turns on quasi-harmonic corrections to entropy, defaulting to the <b>Truhlar's</b> method for entropy correction with cutoff of 175 cm<sup>-1</sup>.
 *	The `--qs` option selects the approximation for the quasi-harmonic entropic correction: `--qs truhlar` or `--qs grimme` request the options explained above. Both avoid the tendency of RRHO vibrational entropies towards infinite values for low frequencies.
 *	The `--qh` option selects the approximation for the quasi-harmonic enthalpy correction. Calling this argument requests the enthalpy correction option explained above. This replaces harmonic energy contributions with a quasi-RRHO vibrational energy term. If not specified then the <b>regular harmonic approximation</b> is used.
 *	The `-f` option specifies the frequency cut-off for both entropy and enthalpy calculations (in wavenumbers) i.e. `-f 10` would use 10 cm<sup>-1</sup> when calculating thermochemical values. The default value is <b>175 cm<sup>-1</sup></b>. N.B. when set to zero all thermochemical values match standard (i.e. harmonic) Gaussian quantities.
