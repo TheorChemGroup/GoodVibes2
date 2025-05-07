@@ -3,7 +3,7 @@
 from __future__ import print_function, absolute_import
 
 """####################################################################
-#                           GoodVibes.py                              #
+#                           GoodVibes-2.py                            #
 #  Evaluation of quasi-harmonic thermochemistry from Gaussian.        #
 #  Partion functions are evaluated from vibrational frequencies       #
 #  and rotational temperatures from the standard output.              #
@@ -49,7 +49,8 @@ from __future__ import print_function, absolute_import
 ###########  Authors:     Rob Paton, Ignacio Funes-Ardoiz  ############
 ###########               Guilian Luchini, Juan V. Alegre- ############
 ###########               Requena, Yanfei Guan, Sibo Lin   ############
-###########  Last modified:  August 8, 2022                ############
+###########  Updated to GoodVibes-2: Julia Velmiskina      ############
+###########  Last modified:  May 7, 2025                   ############
 ####################################################################"""
 
 import math, os.path, sys, time
@@ -79,7 +80,7 @@ except:
         pass
 
 # VERSION NUMBER
-__version__ = "3.2"
+__version__ = "1.0"
 
 SUPPORTED_EXTENSIONS = set(('.out', '.log'))
 
@@ -93,8 +94,8 @@ KCAL_TO_AU = 627.509541  # UNIT CONVERSION
 grimme_ref = "Grimme, S. Chem. Eur. J. 2012, 18, 9955-9964"
 truhlar_ref = "Ribeiro, R. F.; Marenich, A. V.; Cramer, C. J.; Truhlar, D. G. J. Phys. Chem. B 2011, 115, 14556-14562"
 head_gordon_ref = "Li, Y.; Gomes, J.; Sharada, S. M.; Bell, A. T.; Head-Gordon, M. J. Phys. Chem. C 2015, 119, 1840-1850"
-goodvibes_ref = ("Luchini, G.; Alegre-Requena, J. V.; Funes-Ardoiz, I.; Paton, R. S. F1000Research, 2020, 9, 291."
-                 "\n   GoodVibes version " + __version__ + " DOI: 10.12688/f1000research.22758.1")
+goodvibes_ref = ("Velmiskina, J. A., Malyshev, V. I., Gerasimov, I. S. & Medvedev, M. G. J. Chem. Phys. 2025, 162, 124115"
+                 "\n   GoodVibes-2 version " + __version__ + " DOI: 10.1063/5.0255622")
 csd_ref = ("C. R. Groom, I. J. Bruno, M. P. Lightfoot and S. C. Ward, Acta Cryst. 2016, B72, 171-179"
            "\n   Cordero, B.; Gomez V.; Platero-Prats, A. E.; Reves, M.; Echeverria, J.; Cremades, E.; Barragan, F.; Alvarez, S. Dalton Trans. 2008, 2832-2838")
 oniom_scale_ref = "Simon, L.; Paton, R. S. J. Am. Chem. Soc. 2018, 140, 5412-5420"
@@ -791,10 +792,10 @@ def main():
 
     # Start printing results
     start = time.strftime("%Y/%m/%d %H:%M:%S", time.localtime())
-    log.write("   GoodVibes v" + __version__ + " " + start + "\n   Citation: " + goodvibes_ref + "\n")
+    log.write("   GoodVibes-2 v" + __version__ + " " + start + "\n   Citation: " + goodvibes_ref + "\n")
     # Check if user has specified any files, if not quit now
     if len(files) == 0:
-        sys.exit("\nPlease provide GoodVibes with calculation output files on the command line.\n"
+        sys.exit("\nPlease provide GoodVibes-2 with calculation output files on the command line.\n"
                  "For help, use option '-h'\n")
     if clustering:
         command += '(clustering active)'
