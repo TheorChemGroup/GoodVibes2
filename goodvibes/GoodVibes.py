@@ -637,11 +637,10 @@ def main():
     # Get command line inputs. Use -h to list all possible arguments and default values
     parser = ArgumentParser()
     parser.add_argument("-q", dest="Q", action="store_true", default=False,
-                        help="Quasi-harmonic entropy correction and enthalpy correction applied (default S=Grimme, "
-                             "H=Head-Gordon)")
+                        help="Quasi-harmonic entropy correction and enthalpy correction applied (default S=Truhlar)
     parser.add_argument("--qs", dest="QS", default="truhlar", type=str.lower, metavar="QS",
                         choices=('grimme', 'truhlar'),
-                        help="Type of quasi-harmonic entropy correction (Grimme or Truhlar) (default Grimme)", )
+                        help="Type of quasi-harmonic entropy correction (Grimme or Truhlar) (default Truhlar)", )
     parser.add_argument("--qh", dest="QH", action="store_true", default=False,
                         help="Type of quasi-harmonic enthalpy correction (Head-Gordon)")
     parser.add_argument("-f", dest="freq_cutoff", default=175, type=float, metavar="FREQ_CUTOFF",
@@ -649,7 +648,7 @@ def main():
     parser.add_argument("--fs", dest="S_freq_cutoff", default=175.0, type=float, metavar="S_FREQ_CUTOFF",
                         help="Cut-off frequency for entropy (wavenumbers) (default = 175)")
     parser.add_argument("--fh", dest="H_freq_cutoff", default=175.0, type=float, metavar="H_FREQ_CUTOFF",
-                        help="Cut-off frequency for enthalpy (wavenumbers) (default = 100)")
+                        help="Cut-off frequency for enthalpy (wavenumbers) (default = 175)")
     parser.add_argument("-t", dest="temperature", default=298.15, type=float, metavar="TEMP",
                         help="Temperature (K) (default 298.15)")
     parser.add_argument("--norot", dest="norot", default=False, action="store_true",
