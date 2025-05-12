@@ -636,6 +636,8 @@ def main():
     clustering = False
     # Get command line inputs. Use -h to list all possible arguments and default values
     parser = ArgumentParser()
+    parser.add_argument("--version", dest="version", action="store_true", default=False,
+                        help=" GoodVibes-2 v" + __version__ + "")
     parser.add_argument("-q", dest="Q", action="store_true", default=False,
                         help="Quasi-harmonic entropy correction and enthalpy correction applied (default S=Truhlar)
     parser.add_argument("--qs", dest="QS", default="truhlar", type=str.lower, metavar="QS",
@@ -997,6 +999,10 @@ def main():
         log.write("\n   Adding symmetry by user for each molecule using file name")
     if options.norot:
         log.write("\n Turning off rotational contributions to free energy")
+    
+    if options.version is not False:
+        log.write(" \n\n   GoodVibes-2 v" + __version__ + " " + start + "\n   Citation: " + goodvibes_ref + "\n")
+
         
     # Check for special options
     inverted_freqs, inverted_files = [], []
@@ -1085,7 +1091,7 @@ def main():
     if options.ssymm is True: stars += '*' * 13
     if options.symmbyhand is not False: stars += '*' * 13
     if options.random_value is not False: stars += '*' * 14
-    
+
     # Standard mode: tabulate thermochemistry ouput from file(s) at a single temperature and concentration
     if options.temperature_interval is False and options.random_value is False:
         if options.spc is False:
