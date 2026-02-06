@@ -429,6 +429,7 @@ class calc_bbe:
         else:
             self.sp_energy, self.sp_program, self.sp_version_program, self.sp_solvation_model, self.sp_file, self.sp_charge, self.sp_empirical_dispersion, self.sp_multiplicity = parse_data(
                 file)
+        # Reading Gaussian output file
         if self.sp_program == 'Gaussian' or self.program == 'Gaussian':
             # Count number of links
             for line in g_output:
@@ -654,7 +655,7 @@ class calc_bbe:
                     msecs = 0
                     self.cpu = [days,hours,mins,secs,msecs]
                     
-        # ORCA5 file
+        # Reading Orca output file
         if self.sp_program == 'Orca' or self.program == 'Orca':
             frequency_wn = [] 
             im_frequency_wn = []  
@@ -678,7 +679,7 @@ class calc_bbe:
                 if line.strip().startswith('FINAL SINGLE POINT ENERGY'):
                     self.scf_energy = float(line.strip().split()[4])
             if start_index is None:
-                print(f"\n  The file {file} does not have a line 'VIBRATIONAL FREQUENCIES'\n ")
+                print("\n  The file {} does not have a line 'VIBRATIONAL FREQUENCIES'".format(file))
             else:
                 #Now the file is read only below "VIBRATIONAL FREQUENCIES"
                 for i, line in enumerate(g_output[start_index:]):
@@ -702,7 +703,7 @@ class calc_bbe:
                         elif x < -1 * im_freq_cutoff:
                             if invert is not False:
                                 if invert == 'auto':
-                                    if "TSFreq" in self.job_type:
+                                    if "TS" in self.job_type:
                                         if x == lowest_freq:
                                             im_frequency_wn.append(x)
                                         else:
@@ -734,7 +735,7 @@ class calc_bbe:
                     if not ssymm:
                         symmno = int((line.strip().split()[5]))
                         self.point_group = line.strip().split()[2][:-1].lower().capitalize()
-                        if line.strip().split()[2][:-1] == 'Dinfh' or line.strip().split()[2][:-1] == 'Cinfv':
+                        if re.findall(r"[C-D]\(?inf\)?h", line.strip().split()[2][:-1]):
                             linear_mol = 1
                 # Grab rotational constants
                 elif line.strip().startswith('Rotational constants in MHz :'): #(GHZ was before)
@@ -754,8 +755,8 @@ class calc_bbe:
                                   float(line.strip().split()[5])*PLANCK_CONSTANT*SPEED_OF_LIGHT/(BOLTZMANN_CONSTANT),
                                   float(line.strip().split()[6])*PLANCK_CONSTANT*SPEED_OF_LIGHT/(BOLTZMANN_CONSTANT)]
                         if linear_mol == 1:
-                            rotemp.remove(0)
-                            rotemp = list(set(rotemp))
+                            rotemp = [x for x in rotemp if x > 0]
+
                     except ValueError:
                         rotemp = None
                 if "TOTAL RUN TIME:" in line.strip():
