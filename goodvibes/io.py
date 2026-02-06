@@ -4,6 +4,7 @@ from __future__ import print_function, absolute_import
 import os.path
 import re
 import numpy as np
+from periodictable import elements                           
 
 from cclib.io import ccread
 from cclib.parser.utils import convertor
@@ -130,6 +131,31 @@ class getoutData:
         cartesians (list): list of cartesian coordinates for each atom.
         connectivity (list): list of atomic connectivity in a molecule, based on covalent radii
     """
+    def _parse_frequencies(self):
+        for i, line in enumerate(self.lines):
+            if "VIBRATIONAL FREQUENCIES" in line:
+                self.FREQS = [] 
+                j = i + 5
+                while self.lines[j].strip():
+                    parts = self.lines[j].split()
+                    freq = float(parts[1])
+                    self.FREQS.append(float(parts[1]))
+                    j += 1
+
+    def _parse_coordinates(self):
+        for i, line in enumerate(self.lines):
+            if "CARTESIAN COORDINATES (ANGSTROEM)" in line:
+                self.atom_types = []
+                self.atom_nums = []
+                self.cartesians = []
+                j = i + 2
+                while self.lines[j].strip():
+                    el, x, y, z = self.lines[j].split()
+                    self.atom_types.append(el)
+                    self.atom_nums.append(elements.symbol(el).number)
+                    self.cartesians.append([float(x), float(y), float(z)])
+                    j += 1
+
     def __init__(self, filename):
         program, version = get_program_and_version(filename)
         if program != "Orca":
@@ -150,6 +176,15 @@ class getoutData:
             # difference frequency calculation was performed and the displaced
             # geometries are printed.
             self.cartesians = data.atomcoords[-1].tolist()
+
+        elif program == "Orca":
+            with open(filename) as f:
+                self.lines = f.readlines()
+                try:
+                    self._parse_frequencies()
+                except:
+                    pass
+                self._parse_coordinates()
 
     # Convert coordinates to string that can be used by the symmetry.c program
     def coords_string(self):
