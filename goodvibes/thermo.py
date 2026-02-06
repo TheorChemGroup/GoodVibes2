@@ -487,7 +487,7 @@ class calc_bbe:
                             elif x < -1 * im_freq_cutoff:
                                 if invert is not False:
                                     if invert == 'auto':
-                                        if "TSFreq" in self.job_type:
+                                        if "TS" in self.job_type:
                                             if x == lowest_freq:
                                                 im_frequency_wn.append(x)
                                             else:
@@ -496,7 +496,7 @@ class calc_bbe:
                                         else:
                                             frequency_wn.append(x * -1.)
                                             inverted_freqs.append(x)
-                                    elif x > float(invert):
+                                    elif abs(x) < abs(float(invert)):
                                         frequency_wn.append(x * -1.)
                                         inverted_freqs.append(x)
                                     else:
