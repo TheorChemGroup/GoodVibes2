@@ -779,7 +779,6 @@ def jobtype(filename):
     program, version_program = get_program_and_version(filename)
     with open(filename) as f:
         data = f.readlines()
-
     """Read the jobtype from a Gaussian archive string."""
     job = ''
     if program == 'Gaussian':

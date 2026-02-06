@@ -654,7 +654,7 @@ class calc_bbe:
                     secs = line.strip().split()[3][0:-1]
                     msecs = 0
                     self.cpu = [days,hours,mins,secs,msecs]
-                    
+
         # Reading Orca output file
         if self.sp_program == 'Orca' or self.program == 'Orca':
             frequency_wn = [] 
@@ -756,7 +756,6 @@ class calc_bbe:
                                   float(line.strip().split()[6])*PLANCK_CONSTANT*SPEED_OF_LIGHT/(BOLTZMANN_CONSTANT)]
                         if linear_mol == 1:
                             rotemp = [x for x in rotemp if x > 0]
-
                     except ValueError:
                         rotemp = None
                 if "TOTAL RUN TIME:" in line.strip():

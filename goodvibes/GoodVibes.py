@@ -50,7 +50,7 @@ from __future__ import print_function, absolute_import
 ###########               Guilian Luchini, Juan V. Alegre- ############
 ###########               Requena, Yanfei Guan, Sibo Lin   ############
 ###########  Updated to GoodVibes-2: Julia Velmiskina      ############
-###########  Last modified:  February 6, 2025              ############
+###########  Last modified:  February 7, 2026              ############
 ####################################################################"""
 
 import math, os.path, sys, time
@@ -80,7 +80,7 @@ except:
         pass
 
 # VERSION NUMBER
-__version__ = "3.2"
+__version__ = "1.0"
 
 SUPPORTED_EXTENSIONS = set(('.out', '.log'))
 
@@ -733,9 +733,9 @@ def main():
     # If requested, turn on head-gordon enthalpy correction
     #if options.Q: options.QH = True
     if options.QH:
-        stars = "   " + "*" * 142
+        stars = "   " + "*" * 145
     else:
-        stars = "   " + "*" * 128
+        stars = "   " + "*" * 131
     # If necessary, create an xyz file for Cartesians
     if options.xyz: xyz = xyz_out("Goodvibes", "xyz", "output")
     # If user has specified different file extensions
@@ -995,7 +995,7 @@ def main():
         log.write("\n   Rotational contributions to enthalpy and entropy are excluded from free energy calculation")
     if options.version is not False:
         log.write(" \n\n   GoodVibes-2 v" + __version__ + " " + start + "\n   Citation: " + goodvibes_ref + "\n")
-  
+
     # Check for special options
     inverted_freqs, inverted_files = [], []
     if options.ssymm:
@@ -1090,21 +1090,21 @@ def main():
             log.write("\n\n   ")
             if options.QH:
                 log.write('{:<39} {:>13} {:>10} {:>13} {:>13} {:>10} {:>10} {:>13} '
-                          '{:>13}'.format("Structure", "E", "ZPE", "H", "qh-H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"),
+                          '{:>16}'.format("Structure", "E", "ZPE", "H", "qh-H", "T.S", "T.qh-S", "G(T)", "qh-G(T)"),
                           thermodata=True)
             else:
-                log.write('{:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>13}'.format("Structure", "E", "ZPE", "H",
+                log.write('{:<39} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} {:>16}'.format("Structure", "E", "ZPE", "H",
                                                                                            "T.S", "T.qh-S", "G(T)",
                                                                                            "qh-G(T)"), thermodata=True)
         else:
             log.write("\n\n   ")
             if options.QH:
                 log.write('{:<39} {:>13} {:>13} {:>10} {:>13} {:>13} {:>10} {:>10} {:>13} '
-                          '{:>13}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "qh-H_SPC", "T.S", "T.qh-S",
+                          '{:>16}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "qh-H_SPC", "T.S", "T.qh-S",
                                           "G(T)_SPC", "qh-G(T)_SPC"), thermodata=True)
             else:
                 log.write('{:<39} {:>13} {:>13} {:>10} {:>13} {:>10} {:>10} {:>13} '
-                          '{:>13}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "T.S", "T.qh-S", "G(T)_SPC",
+                          '{:>16}'.format("Structure", "E_SPC", "E", "ZPE", "H_SPC", "T.S", "T.qh-S", "G(T)_SPC",
                                           "qh-G(T)_SPC"), thermodata=True)
         if options.cosmo is not False:
             log.write('{:>13} {:>16}'.format("COSMO-RS", "COSMO-qh-G(T)"), thermodata=True)
