@@ -50,7 +50,7 @@ from __future__ import print_function, absolute_import
 ###########               Guilian Luchini, Juan V. Alegre- ############
 ###########               Requena, Yanfei Guan, Sibo Lin   ############
 ###########  Updated to GoodVibes-2: Julia Velmiskina      ############
-###########  Last modified:  May 7, 2025                   ############
+###########  Last modified:  February 7, 2026              ############
 ####################################################################"""
 
 import math, os.path, sys, time
@@ -80,7 +80,7 @@ except:
         pass
 
 # VERSION NUMBER
-__version__ = "1.0"
+__version__ = "3.2"
 
 SUPPORTED_EXTENSIONS = set(('.out', '.log'))
 
@@ -654,13 +654,13 @@ def main():
     parser.add_argument("-t", dest="temperature", default=298.15, type=float, metavar="TEMP",
                         help="Temperature (K) (default 298.15)")
     parser.add_argument("--norot", dest="norot", default=False, action="store_true",
-                        help="Turning off rotational contributions to free energy")
+                        help="When enabled, rotational terms are not included in the calculation of enthalpy and entropy, and therefore do not contribute to the free energy (default False).")
     parser.add_argument("-c", dest="conc", default=False, type=float, metavar="CONC",
                         help="Concentration (mol/l) (default 1 atm)")
     parser.add_argument("--ti", dest="temperature_interval", default=False, metavar="TI",
                         help="Initial temp, final temp, step size (K)")
     parser.add_argument("--symmbyhand", dest="symmbyhand", action="store_true", default=False, 
-                        help="Indicates symmetry by hand (default False)")  
+                        help="Using point group symmetry from the file name(e.g. file_symmD4h.log) instead of the symmetry read from the output file (default False)")  
     parser.add_argument("--random", dest="random_value", default=False, metavar="RAND",
                         help="Frequency border, frequency range, number of files (default False)")
     parser.add_argument("-v", dest="freq_scale_factor", default=False, type=float, metavar="SCALE_FACTOR",
@@ -743,12 +743,6 @@ def main():
         custom_extensions = options.custom_ext.split(',') + os.environ.get('GOODVIBES_CUSTOM_EXT', '').split(',')
         for ext in custom_extensions:
             SUPPORTED_EXTENSIONS.add(ext.strip())
-
-    ## Default value for inverting imaginary frequencies
-    #if options.invert:
-    #    options.invert == -50.0
-    #elif options.invert > 0:
-    #    options.invert = -1 * options.invert
 
     # Start a log for the results
     log = Logger("Goodvibes", options.output, options.csv)
@@ -996,14 +990,12 @@ def main():
         log.write("\n   Applying standard concentration correction (based on density at 20C) to solvent media.")
     # Symmetry adding message
     if options.symmbyhand:
-        log.write("\n   Adding symmetry by user for each molecule using file name")
+        log.write("\n   Using molecular symmetry specified in the file name (e.g. file_symmC1.log) to allow manual control of symmetry")
     if options.norot:
-        log.write("\n Turning off rotational contributions to free energy")
-    
+        log.write("\n   Rotational contributions to enthalpy and entropy are excluded from free energy calculation")
     if options.version is not False:
         log.write(" \n\n   GoodVibes-2 v" + __version__ + " " + start + "\n   Citation: " + goodvibes_ref + "\n")
 
-        
     # Check for special options
     inverted_freqs, inverted_files = [], []
     if options.ssymm:

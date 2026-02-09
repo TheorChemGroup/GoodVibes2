@@ -4,6 +4,7 @@ from __future__ import print_function, absolute_import
 import os.path
 import re
 import numpy as np
+from periodictable import elements                           
 
 from cclib.io import ccread
 from cclib.parser.utils import convertor
@@ -57,6 +58,40 @@ def element_id(massno, num=False):
     except IndexError:
         return "XX"
 
+def get_program_and_version(file):
+    version_program = ''
+    stub = os.path.splitext(file)[0]
+    possible_filenames = (stub + ".log", stub + ".out")
+    for possible_filename in possible_filenames:
+        if os.path.exists(possible_filename):
+            with open(possible_filename) as f:
+                file_lines = f.readlines()
+                for line in file_lines:
+                    if "Gaussian" in line:
+                        program = "Gaussian"
+                        break
+                    if "* O   R   C   A *" in line:
+                        program = "Orca"
+                        break
+                    if "NWChem" in line:
+                        program = "NWChem"
+                        break
+                repeated_link1 = 0
+                if program == "Orca":
+                    for line in file_lines:
+                        if 'Program Version' in line.strip():
+                            version_program = "ORCA version " + line.split()[2]
+                elif program == "Gaussian":
+                    for line in file_lines:
+                        if "Gaussian" in line and "Revision" in line and repeated_link1 == 0:
+                            for i in range(len(line.strip(",").split(",")) - 1):
+                                line.strip(",").split(",")[i]
+                                version_program += line.strip(",").split(",")[i]
+                                repeated_link1 = 1
+                            version_program = version_program[1:]
+                else:
+                    raise ValueError("File {} is not Gaussian or ORCA output file".format(file))
+                return program, version_program
 class xyz_out:
     """
     Enables output of optimized coordinates to a single xyz-formatted file.
@@ -96,24 +131,60 @@ class getoutData:
         cartesians (list): list of cartesian coordinates for each atom.
         connectivity (list): list of atomic connectivity in a molecule, based on covalent radii
     """
-    def __init__(self, filename):
-        data = ccread(filename)
-        try:
-            self.FREQS = data.vibfreqs.tolist()
-            self.REDMASS = data.vibrmasses.tolist()
-            self.FORCECONST = data.vibfconsts.tolist()
-            self.NORMALMODE = data.vibdisps.tolist()
-        except:
-            pass
+    def _parse_frequencies(self):
+        for i, line in enumerate(self.lines):
+            if "VIBRATIONAL FREQUENCIES" in line:
+                self.FREQS = [] 
+                j = i + 5
+                while self.lines[j].strip():
+                    parts = self.lines[j].split()
+                    freq = float(parts[1])
+                    self.FREQS.append(float(parts[1]))
+                    j += 1
 
-        self.atom_nums = data.atomnos.tolist()
-        self.atom_types = [periodictable[atomnum] for atomnum in self.atom_nums]
-        # Assuming that the output file doesn't contain a geometry
-        # optimization at the beginning, we take the first set of atomic
-        # coordinates rather than the last, in the even that a finite
-        # difference frequency calculation was performed and the displaced
-        # geometries are printed.
-        self.cartesians = data.atomcoords[-1].tolist()
+    def _parse_coordinates(self):
+        for i, line in enumerate(self.lines):
+            if "CARTESIAN COORDINATES (ANGSTROEM)" in line:
+                self.atom_types = []
+                self.atom_nums = []
+                self.cartesians = []
+                j = i + 2
+                while self.lines[j].strip():
+                    el, x, y, z = self.lines[j].split()
+                    self.atom_types.append(el)
+                    self.atom_nums.append(elements.symbol(el).number)
+                    self.cartesians.append([float(x), float(y), float(z)])
+                    j += 1
+
+    def __init__(self, filename):
+        program, version = get_program_and_version(filename)
+        if program != "Orca":
+            data = ccread(filename)
+            try:
+                self.FREQS = data.vibfreqs.tolist()
+                self.REDMASS = data.vibrmasses.tolist()
+                self.FORCECONST = data.vibfconsts.tolist()
+                self.NORMALMODE = data.vibdisps.tolist()
+            except:
+                pass
+
+            self.atom_nums = data.atomnos.tolist()
+            self.atom_types = [periodictable[atomnum] for atomnum in self.atom_nums]
+            # Assuming that the output file doesn't contain a geometry
+            # optimization at the beginning, we take the first set of atomic
+            # coordinates rather than the last, in the even that a finite
+            # difference frequency calculation was performed and the displaced
+            # geometries are printed.
+            self.cartesians = data.atomcoords[-1].tolist()
+
+        elif program == "Orca":
+            with open(filename) as f:
+                self.lines = f.readlines()
+                try:
+                    self._parse_frequencies()
+                except:
+                    pass
+                self._parse_coordinates()
 
     # Convert coordinates to string that can be used by the symmetry.c program
     def coords_string(self):
@@ -220,9 +291,10 @@ def parse_data(file):
     str: empirical dispersion used in chemical calculation (if any).
     int: multiplicity of molecule or chemical system.
     """
-    spe, program, data, version_program, solvation_model, keyword_line, a, charge, multiplicity = 'none', 'none', [], '', '', '', 0, None, None
+    spe, data, solvation_model, keyword_line, a, charge, multiplicity = 'none', [], '', '', 0, None, None
 
     data = None
+    program, version_program = get_program_and_version(file)
     stub = os.path.splitext(file)[0]
     possible_filenames = (stub + ".log", stub + ".out")
     for possible_filename in possible_filenames:
@@ -233,16 +305,6 @@ def parse_data(file):
     if data is None:
         raise ValueError("File {} does not exist".format(file))
 
-    for line in data:
-        if "Gaussian" in line:
-            program = "Gaussian"
-            break
-        if "* O   R   C   A *" in line:
-            program = "Orca"
-            break
-        if "NWChem" in line:
-            program = "NWChem"
-            break
     repeated_link1 = 0
     
     if program != "Orca":
@@ -288,15 +350,7 @@ def parse_data(file):
             # For Semi-empirical or Molecular Mechanics calculations
             elif "Energy= " in line.strip() and "Predicted" not in line.strip() and "Thermal" not in line.strip() and "G4" not in line.strip():
                 spe = (float(line.strip().split()[1]))
-            elif "Gaussian" in line and "Revision" in line and repeated_link1 == 0:
-                for i in range(len(line.strip(",").split(",")) - 1):
-                    line.strip(",").split(",")[i]
-                    version_program += line.strip(",").split(",")[i]
-                    repeated_link1 = 1
-                version_program = version_program[1:]
         elif program == "Orca":
-            if 'Program Version' in line.strip():
-                version_program = "ORCA version " + line.split()[2]
             if line.strip().startswith('FINAL SINGLE POINT ENERGY'):
                 spe = float(line.strip().split()[4])
             if "Total Charge" in line.strip() and "...." in line.strip():
@@ -479,7 +533,7 @@ def parse_data(file):
 def sp_cpu(file):
     """Read single-point output for cpu time."""
     spe, program, data, cpu = None, None, [], None
-
+    program, version_program = get_program_and_version(file)
     if os.path.exists(os.path.splitext(file)[0] + '.log'):
         with open(os.path.splitext(file)[0] + '.log') as f:
             data = f.readlines()
@@ -488,17 +542,6 @@ def sp_cpu(file):
             data = f.readlines()
     else:
         raise ValueError("File {} does not exist".format(file))
-
-    for line in data:
-        if line.find("Gaussian") > -1:
-            program = "Gaussian"
-            break
-        if line.find("* O   R   C   A *") > -1:
-            program = "Orca"
-            break
-        if line.find("NWChem") > -1:
-            program = "NWChem"
-            break
 
     for line in data:
         if program == "Gaussian":
@@ -584,26 +627,16 @@ def level_of_theory(file):
 
 def read_initial(file):
     """At beginning of procedure, read level of theory, solvation model, and check for normal termination"""
+    program, version_program = get_program_and_version(file)
     with open(file) as f:
         data = f.readlines()
-    level, bs, program, keyword_line = 'none', 'none', 'none', 'none'
+    level, bs, keyword_line = 'none', 'none', 'none'
     progress, orientation = 'Incomplete', 'Input'
     a, repeated_theory = 0, 0
     no_grid = True
     DFT, dft_used, level, bs, scf_iradan, cphf_iradan = False, 'F', 'none', 'none', False, False
     grid_lookup = {1: 'sg1', 2: 'coarse', 4: 'fine', 5: 'ultrafine', 7: 'superfine'}
 
-    for line in data:
-        # Determine program
-        if "Gaussian" in line:
-            program = "Gaussian"
-            break
-        if "* O   R   C   A *" in line:
-            program = "Orca"
-            break
-        if "NWChem" in line:
-            program = "NWChem"
-            break
     for line in data:
         # Grab pertinent information from file
         if line.strip().find('External calculation') > -1:
@@ -719,8 +752,9 @@ def read_initial(file):
                     else:
                         end_scrf = len(keyword_line)
                     solvation_model = "scrf=" + keyword_line[start_scrf:end_scrf]
+    solvation_model = ''
     # ORCA parsing for solvation model
-    elif program == 'Orca':
+    if program == 'Orca':
         keyword_line_1 = "gas phase"
         keyword_line_2 = ''
         keyword_line_3 = ''
@@ -741,19 +775,10 @@ def read_initial(file):
     return level_of_theory, solvation_model, progress, orientation, dft_used
 
 def jobtype(filename):
+    """Read the jobtype from input file."""
+    program, version_program = get_program_and_version(filename)
     with open(filename) as f:
         data = f.readlines()
-    for line in data:
-        # Determine program
-        if "Gaussian" in line:
-            program = "Gaussian"
-            break
-        if "* O   R   C   A *" in line:
-            program = "Orca"
-            break
-        if "NWChem" in line:
-            program = "NWChem"
-            break
     """Read the jobtype from a Gaussian archive string."""
     job = ''
     if program == 'Gaussian':
@@ -767,25 +792,16 @@ def jobtype(filename):
                     job += 'TS'
                 if line.strip().find('\\Freq\\') > -1:
                     job += 'Freq'
-
+    """Find ORCA keywords for jobtype"""
     if program == 'Orca':
-        start_marker = "INPUT FILE"
-        end_marker = "END"
-        capture = False
         with open(filename) as f:
             for line in f:
-                if line.strip().find('Single Point Calculation') > -1:
+                if line.strip().find('* Single Point Calculation *') > -1:
                     job += 'SP'
-                if start_marker in line:
-                    capture = True
-                    continue
-                if end_marker in line:
-                    capture = False
-                    continue
-                if capture and re.search(r"\btightopt\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE) or capture and re.search(r"\bopt\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE):
+                if line.strip().find('* Geometry Optimization Run *') > -1:
                     job += 'GS'
-                if capture and re.search(r"\boptts\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE):
+                if line.strip().find('Following TS mode number') > -1:
                     job += 'TS'
-                if capture and re.search(r"\bfreq\b", line, re.IGNORECASE) and re.search(r"!", line, re.IGNORECASE):
+                if line.strip().find('VIBRATIONAL FREQUENCIES') > -1:
                     job += 'Freq'
     return job
